@@ -1,8 +1,13 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.service.docker.impl;
 
 import com.cparedesr.dockia.agents.model.AgentDeployRequest;
 import com.cparedesr.dockia.agents.service.docker.DockerService;
 import com.cparedesr.dockia.agents.service.exception.BadRequestException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.alfresco.util.Pair;
 
 import javax.net.ssl.SSLContext;
@@ -20,9 +25,16 @@ import java.security.KeyStore;
 import java.time.Duration;
 import java.util.*;
 
+/**
+ * Implementacion basada en el CLI de Docker contra el socket local. Mantiene
+ * soporte de borrado por Docker Remote API para instalaciones que lo expongan.
+ */
 public class DockerSocketCliServiceImpl implements DockerService {
 
+    private static final String MANAGED_CONTAINER_LABEL = "com.cparedesr.dockia.agentId";
+
     private Properties globalProperties;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public void setGlobalProperties(Properties globalProperties) {
         this.globalProperties = globalProperties;
@@ -87,6 +99,51 @@ public class DockerSocketCliServiceImpl implements DockerService {
     }
 
     @Override
+    public void start(String containerId) {
+        boolean enabled = Boolean.parseBoolean(globalProperties.getProperty("alfresco.aiagents.docker.enabled", "true"));
+        if (!enabled) return;
+
+        if (containerId == null || containerId.trim().isEmpty()) return;
+
+        String mode = globalProperties.getProperty("alfresco.aiagents.docker.mode", "socket");
+
+        if ("socket".equalsIgnoreCase(mode)) {
+            startBySocket(containerId.trim());
+            return;
+        }
+
+        if ("url".equalsIgnoreCase(mode)) {
+            startByRemoteApi(containerId.trim());
+            return;
+        }
+
+        throw new BadRequestException("DOCKER_MODE_UNSUPPORTED", "Unsupported alfresco.aiagents.docker.mode: " + mode);
+    }
+
+    @Override
+    public void stop(String containerId, int timeoutSeconds) {
+        boolean enabled = Boolean.parseBoolean(globalProperties.getProperty("alfresco.aiagents.docker.enabled", "true"));
+        if (!enabled) return;
+
+        if (containerId == null || containerId.trim().isEmpty()) return;
+
+        String mode = globalProperties.getProperty("alfresco.aiagents.docker.mode", "socket");
+        int safeTimeout = Math.max(0, timeoutSeconds);
+
+        if ("socket".equalsIgnoreCase(mode)) {
+            stopBySocket(containerId.trim(), safeTimeout);
+            return;
+        }
+
+        if ("url".equalsIgnoreCase(mode)) {
+            stopByRemoteApi(containerId.trim(), safeTimeout);
+            return;
+        }
+
+        throw new BadRequestException("DOCKER_MODE_UNSUPPORTED", "Unsupported alfresco.aiagents.docker.mode: " + mode);
+    }
+
+    @Override
     public void remove(String containerId, boolean force) {
         boolean enabled = Boolean.parseBoolean(globalProperties.getProperty("alfresco.aiagents.docker.enabled", "true"));
         if (!enabled) return;
@@ -108,7 +165,52 @@ public class DockerSocketCliServiceImpl implements DockerService {
         throw new BadRequestException("DOCKER_MODE_UNSUPPORTED", "Unsupported alfresco.aiagents.docker.mode: " + mode);
     }
 
-    // ---------------- socket mode ----------------
+    @Override
+    public List<String> listManagedContainerIds() {
+        boolean enabled = Boolean.parseBoolean(globalProperties.getProperty("alfresco.aiagents.docker.enabled", "true"));
+        if (!enabled) return Collections.emptyList();
+
+        String mode = globalProperties.getProperty("alfresco.aiagents.docker.mode", "socket");
+        if ("socket".equalsIgnoreCase(mode)) {
+            return listManagedContainersBySocket();
+        }
+        if ("url".equalsIgnoreCase(mode)) {
+            return listManagedContainersByRemoteApi();
+        }
+
+        throw new BadRequestException("DOCKER_MODE_UNSUPPORTED", "Unsupported alfresco.aiagents.docker.mode: " + mode);
+    }
+
+    // ---------------- modo socket ----------------
+
+    private void startBySocket(String containerId) {
+        String socket = globalProperties.getProperty("alfresco.aiagents.docker.socket", "/var/run/docker.sock");
+
+        List<String> cmd = Arrays.asList(
+                "docker", "--host", "unix://" + socket,
+                "start", containerId
+        );
+        execOrFail(cmd);
+    }
+
+    private void stopBySocket(String containerId, int timeoutSeconds) {
+        String socket = globalProperties.getProperty("alfresco.aiagents.docker.socket", "/var/run/docker.sock");
+
+        List<String> cmd = Arrays.asList(
+                "docker", "--host", "unix://" + socket,
+                "stop", "--time", Integer.toString(timeoutSeconds), containerId
+        );
+
+        // La parada del subsistema debe ser segura aunque el runtime ya no exista.
+        try {
+            execOrFail(cmd);
+        } catch (BadRequestException e) {
+            if (isNotFound(e)) {
+                return;
+            }
+            throw e;
+        }
+    }
 
     private void removeBySocket(String containerId, boolean force) {
         String socket = globalProperties.getProperty("alfresco.aiagents.docker.socket", "/var/run/docker.sock");
@@ -121,19 +223,95 @@ public class DockerSocketCliServiceImpl implements DockerService {
         if (force) cmd.add("-f");
         cmd.add(containerId);
 
-        // Si el contenedor no existe, hacemos DELETE idempotente (no fallar)
+        // Si el contenedor no existe, hacemos DELETE idempotente.
         try {
             execOrFail(cmd);
         } catch (BadRequestException e) {
-            String msg = (e.getMessage() == null) ? "" : e.getMessage().toLowerCase();
-            if (msg.contains("no such container") || msg.contains("not found")) {
+            if (isNotFound(e)) {
                 return; // idempotente
             }
             throw e;
         }
     }
 
-    // ---------------- url mode (Docker Remote API TLS) ----------------
+    private List<String> listManagedContainersBySocket() {
+        String socket = globalProperties.getProperty("alfresco.aiagents.docker.socket", "/var/run/docker.sock");
+        List<String> cmd = Arrays.asList(
+                "docker", "--host", "unix://" + socket,
+                "container", "ls", "--all", "--quiet",
+                "--filter", "label=" + MANAGED_CONTAINER_LABEL
+        );
+        return execAndGetLines(cmd);
+    }
+
+    // ---------------- modo url (Docker Remote API TLS) ----------------
+
+    private void startByRemoteApi(String containerId) {
+        String baseUrl = globalProperties.getProperty("alfresco.aiagents.docker.baseUrl", "").trim();
+        if (baseUrl.isEmpty()) {
+            throw new BadRequestException("DOCKER_BASEURL_REQUIRED", "alfresco.aiagents.docker.baseUrl is required for mode=url");
+        }
+
+        String url = baseUrl.replaceAll("/+$", "") + "/containers/" + containerId + "/start";
+
+        try {
+            HttpClient client = buildTlsHttpClientIfConfigured();
+
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(30))
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+
+            HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+
+            // 204 No Content => arrancado; 304 Not Modified => ya estaba arrancado.
+            if (res.statusCode() == 204 || res.statusCode() == 304) return;
+
+            throw new BadRequestException("DOCKER_REMOTE_API_ERROR",
+                    "Docker API error " + res.statusCode() + ": " + safeBody(res.body()));
+
+        } catch (BadRequestException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BadRequestException("DOCKER_REMOTE_API_EXEC_FAILED", "Failed to call Docker Remote API");
+        }
+    }
+
+    private void stopByRemoteApi(String containerId, int timeoutSeconds) {
+        String baseUrl = globalProperties.getProperty("alfresco.aiagents.docker.baseUrl", "").trim();
+        if (baseUrl.isEmpty()) {
+            throw new BadRequestException("DOCKER_BASEURL_REQUIRED", "alfresco.aiagents.docker.baseUrl is required for mode=url");
+        }
+
+        String url = baseUrl.replaceAll("/+$", "") + "/containers/" + containerId + "/stop?t=" + timeoutSeconds;
+
+        try {
+            HttpClient client = buildTlsHttpClientIfConfigured();
+
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(30))
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+
+            HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+
+            // 204 No Content => parado; 304 Not Modified => ya estaba parado.
+            if (res.statusCode() == 204 || res.statusCode() == 304) return;
+
+            // 404 Not Found => idempotente durante parada del subsistema.
+            if (res.statusCode() == 404) return;
+
+            throw new BadRequestException("DOCKER_REMOTE_API_ERROR",
+                    "Docker API error " + res.statusCode() + ": " + safeBody(res.body()));
+
+        } catch (BadRequestException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BadRequestException("DOCKER_REMOTE_API_EXEC_FAILED", "Failed to call Docker Remote API");
+        }
+    }
 
     private void removeByRemoteApi(String containerId, boolean force) {
         String baseUrl = globalProperties.getProperty("alfresco.aiagents.docker.baseUrl", "").trim();
@@ -169,6 +347,49 @@ public class DockerSocketCliServiceImpl implements DockerService {
         } catch (Exception e) {
             throw new BadRequestException("DOCKER_REMOTE_API_EXEC_FAILED", "Failed to call Docker Remote API");
         }
+    }
+
+    private List<String> listManagedContainersByRemoteApi() {
+        String baseUrl = globalProperties.getProperty("alfresco.aiagents.docker.baseUrl", "").trim();
+        if (baseUrl.isEmpty()) {
+            throw new BadRequestException("DOCKER_BASEURL_REQUIRED", "alfresco.aiagents.docker.baseUrl is required for mode=url");
+        }
+
+        String filters = "%7B%22label%22%3A%5B%22" + MANAGED_CONTAINER_LABEL + "%22%5D%7D";
+        String url = baseUrl.replaceAll("/+$", "") + "/containers/json?all=true&filters=" + filters;
+
+        try {
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(30))
+                    .GET()
+                    .build();
+            HttpResponse<String> res = buildTlsHttpClientIfConfigured()
+                    .send(req, HttpResponse.BodyHandlers.ofString());
+            if (res.statusCode() != 200) {
+                throw new BadRequestException("DOCKER_REMOTE_API_ERROR",
+                        "Docker API error " + res.statusCode() + ": " + safeBody(res.body()));
+            }
+
+            JsonNode containers = objectMapper.readTree(res.body());
+            if (!containers.isArray()) return Collections.emptyList();
+
+            LinkedHashSet<String> ids = new LinkedHashSet<>();
+            for (JsonNode container : containers) {
+                String id = container.path("Id").asText("").trim();
+                if (!id.isEmpty()) ids.add(id);
+            }
+            return new ArrayList<>(ids);
+        } catch (BadRequestException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BadRequestException("DOCKER_REMOTE_API_EXEC_FAILED", "Failed to list containers using Docker Remote API");
+        }
+    }
+
+    private boolean isNotFound(BadRequestException e) {
+        String msg = (e.getMessage() == null) ? "" : e.getMessage().toLowerCase();
+        return msg.contains("no such container") || msg.contains("not found");
     }
 
     /**
@@ -230,7 +451,7 @@ public class DockerSocketCliServiceImpl implements DockerService {
         return b.length() > 500 ? b.substring(0, 500) + "..." : b;
     }
 
-    // ---------------- CLI helpers (los tuyos) ----------------
+    // ---------------- helpers CLI ----------------
 
     private String execAndGetFirstLine(List<String> cmd) {
         Pair<Integer, String> r = exec(cmd);
@@ -242,6 +463,20 @@ public class DockerSocketCliServiceImpl implements DockerService {
             if (!s.isEmpty()) return s;
         }
         return "";
+    }
+
+    private List<String> execAndGetLines(List<String> cmd) {
+        Pair<Integer, String> r = exec(cmd);
+        if (r.getFirst() != 0) {
+            throw new BadRequestException("DOCKER_CLI_ERROR", r.getSecond());
+        }
+
+        LinkedHashSet<String> lines = new LinkedHashSet<>();
+        for (String line : r.getSecond().split("\\R")) {
+            String value = line.trim();
+            if (!value.isEmpty()) lines.add(value);
+        }
+        return new ArrayList<>(lines);
     }
 
     private void execOrFail(List<String> cmd) {

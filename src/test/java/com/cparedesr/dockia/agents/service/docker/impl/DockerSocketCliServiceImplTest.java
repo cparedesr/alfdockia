@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.service.docker.impl;
 
 import com.cparedesr.dockia.agents.service.docker.DockerService;
@@ -35,5 +38,10 @@ public class DockerSocketCliServiceImplTest {
 
         assertNull(r.getContainerId());
         assertEquals("disabled", r.getCurrentState());
+    }
+
+    @Test
+    public void whenDisabledThereAreNoManagedContainers() {
+        assertTrue(docker.listManagedContainerIds().isEmpty());
     }
 }

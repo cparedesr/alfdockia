@@ -17,9 +17,6 @@ COPY alfresco-global.properties $TOMCAT_DIR/shared/classes/alfresco-global.prope
 COPY dev-log4j2.properties $TOMCAT_DIR/shared/classes/alfresco/extension
 COPY disable-webscript-caching-context.xml $TOMCAT_DIR/shared/classes/alfresco/extension
 
-# Copy Dockerfile to avoid an error if no license file exists
-COPY Dockerfile license/*.* $TOMCAT_DIR/webapps/alfresco/WEB-INF/classes/alfresco/extension/license/
-
 # 1. Instalar dependencias y configurar el repositorio de Docker
 RUN dnf install -y dnf-plugins-core && \
     dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && \
@@ -37,6 +34,12 @@ RUN set -eux; \
       groupadd -g 999 dockerhost; \
     fi; \
     usermod -aG 999 ${USERNAME}
+
+RUN set -eux; \
+    if ! getent group 101 >/dev/null 2>&1; then \
+      groupadd -g 101 dockerhost; \
+    fi; \
+    usermod -aG 101 ${USERNAME}
 
 # 3. Añadir usuario "alfresco" al grupo "docker"
 RUN usermod -aG docker alfresco

@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.service;
 
 import com.cparedesr.dockia.agents.model.AgentDeployRequest;
@@ -10,6 +13,11 @@ import org.springframework.util.StringUtils;
 
 import java.util.*;
 
+/**
+ * Orquesta el despliegue de un agente: resuelve el destino en Alfresco,
+ * prepara variables de entorno seguras, arranca el contenedor y registra el
+ * resultado en el repositorio.
+ */
 public class AgentDeploymentService {
 
     private AlfrescoFolderService folderService;
@@ -28,6 +36,8 @@ public class AgentDeploymentService {
 
         String agentId = "agent-" + UUID.randomUUID();
 
+        // El destino se resuelve antes de lanzar Docker para evitar contenedores
+        // huerfanos apuntando a nodos inexistentes.
         String resolvedTargetNodeId = folderService.ensureAndResolveNodeId(
                 req.getAlfresco().getTargetNodeId(),
                 req.getAlfresco().getTargetPath()
@@ -44,6 +54,7 @@ public class AgentDeploymentService {
                 ? secretsService.resolve(req.getLlm().getApiKeySecretRef().getSecretRef())
                 : null;
 
+        // Variables estandar que el runtime del agente espera recibir.
         Map<String,String> env = new HashMap<>();
         env.put("ALFRESCO_BASE_URL", req.getAlfresco().getBaseUrl());
         env.put("ALFRESCO_AUTH_TYPE", authType);
@@ -62,6 +73,8 @@ public class AgentDeploymentService {
 
         if (req.getEnv() != null) env.putAll(req.getEnv());
 
+        // Las etiquetas permiten localizar el contenedor desde Docker sin
+        // consultar primero Alfresco.
         Map<String,String> labels = Map.of(
                 "com.cparedesr.dockia.agentId", agentId,
                 "com.cparedesr.dockia.name", req.getName(),
@@ -93,7 +106,8 @@ public class AgentDeploymentService {
         a.setBaseUrl(in.getAlfresco().getBaseUrl());
         a.setAuthType(in.getAlfresco().getAuthType());
         a.setUsername(in.getAlfresco().getUsername());
-        a.setPasswordSecretRef(in.getAlfresco().getPasswordSecretRef()); // secretRef OK
+        // Se conserva la referencia al secreto, nunca el valor resuelto.
+        a.setPasswordSecretRef(in.getAlfresco().getPasswordSecretRef());
         a.setTargetNodeId(resolvedTargetNodeId);
         a.setTargetPath(in.getAlfresco().getTargetPath());
         a.setPollingSeconds(in.getAlfresco().getPollingSeconds());

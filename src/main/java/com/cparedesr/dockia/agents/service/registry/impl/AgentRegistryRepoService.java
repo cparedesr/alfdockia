@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.service.registry.impl;
 
 import com.cparedesr.dockia.agents.model.AgentDeployRequest;
@@ -22,6 +25,10 @@ import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+/**
+ * Implementacion del registro de agentes usando nodos del repositorio de
+ * Alfresco bajo Data Dictionary / AI Agents.
+ */
 public class AgentRegistryRepoService implements AgentRegistryService {
 
     private static final String AI_URI = "http://www.cparedesr.com/model/aiagents/1.0";
@@ -134,6 +141,32 @@ public class AgentRegistryRepoService implements AgentRegistryService {
     }
 
     @Override
+    public List<AgentRuntimeInfo> listRuntimeInfos() {
+        ResultSet rs = null;
+        try {
+            String folderPathQuery = buildRegistryFolderPathQuery();
+
+            SearchParameters sp = new SearchParameters();
+            sp.setLanguage(SearchService.LANGUAGE_FTS_ALFRESCO);
+            sp.addStore(StoreRef.STORE_REF_WORKSPACE_SPACESSTORE);
+            sp.setQuery("TYPE:\"ai:agent\" AND PATH:\"" + folderPathQuery + "/*\"");
+            sp.setMaxItems(10000);
+
+            rs = searchService.query(sp);
+            if (rs == null || rs.length() == 0) return Collections.emptyList();
+
+            List<AgentRuntimeInfo> out = new ArrayList<>(rs.length());
+            for (int i = 0; i < rs.length(); i++) {
+                out.add(mapRuntimeInfo(rs.getNodeRef(i)));
+            }
+            return out;
+
+        } finally {
+            if (rs != null) rs.close();
+        }
+    }
+
+    @Override
     public AgentDetail getAgentDetailByAgentId(String agentId) {
         NodeRef nr = findByAgentIdOrThrow(agentId);
         return mapDetail(nr);
@@ -156,7 +189,7 @@ public class AgentRegistryRepoService implements AgentRegistryService {
         nodeService.deleteNode(nr);
     }
 
-    // ---------------- mapping ----------------
+    // ---------------- mapeo ----------------
 
     private AgentSummary mapSummary(NodeRef nodeRef) {
         AgentSummary s = new AgentSummary();
@@ -199,6 +232,14 @@ public class AgentRegistryRepoService implements AgentRegistryService {
         return d;
     }
 
+    private AgentRuntimeInfo mapRuntimeInfo(NodeRef nodeRef) {
+        AgentRuntimeInfo info = new AgentRuntimeInfo();
+        info.setAgentId(toStr(nodeService.getProperty(nodeRef, PROP_AGENT_ID)));
+        info.setNodeId(nodeRef.getId());
+        info.setContainerId(toStr(nodeService.getProperty(nodeRef, PROP_CONTAINER)));
+        return info;
+    }
+
     private String toStr(Serializable v) { return v == null ? null : v.toString(); }
 
     private String toIso(Serializable v) {
@@ -210,7 +251,7 @@ public class AgentRegistryRepoService implements AgentRegistryService {
         return v.toString();
     }
 
-    // ---------------- find helpers ----------------
+    // ---------------- helpers de busqueda ----------------
 
     private NodeRef findByAgentIdOrThrow(String agentId) {
         if (agentId == null || agentId.trim().isEmpty()) {
@@ -235,7 +276,7 @@ public class AgentRegistryRepoService implements AgentRegistryService {
         }
     }
 
-    // ---------------- registry folder helpers ----------------
+    // ---------------- helpers de carpeta de registro ----------------
 
     private NodeRef ensureRegistryFolder() {
         NodeRef dataDictionary = getDataDictionary();

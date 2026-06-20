@@ -1,5 +1,6 @@
+
 services:
-#  Optional
+  # Share es opcional, pero resulta util para pruebas manuales del repositorio.
   alfresco-dockia-agents-share:
     image: ${docker.share.image}:${alfresco.share.version}
     environment:
@@ -25,7 +26,10 @@ services:
       - "${acs.debug.port}:8888"
     volumes:
       - alfresco-dockia-agents-acs-volume:/usr/local/tomcat/alf_data
+      # Permite que el modulo cree y borre contenedores de agentes por socket.
       - /var/run/docker.sock:/var/run/docker.sock
+    # Tomcat necesita margen para cerrar el subsistema y detener sus agentes.
+    stop_grace_period: 2m
     depends_on:
       - alfresco-dockia-agents-postgres
   alfresco-dockia-agents-postgres:
