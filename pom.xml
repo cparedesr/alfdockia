@@ -5,10 +5,14 @@
     <groupId>com.cparedesr.dockia.agents</groupId>
     <artifactId>alfresco-dockia-agents</artifactId>
     <version>1.0-SNAPSHOT</version>
-    <name>alfresco-dockia-agents Platform/Repository JAR Module</name>
-    <description>Platform/Repo JAR Module (to be included in the alfresco.war)</description>
+    <name>Alfresco DockIA Agents</name>
+    <description>Modulo de Alfresco para desplegar y gestionar agentes de IA con Docker.</description>
     <packaging>jar</packaging>
 
+    <inceptionYear>2026</inceptionYear>
+    <organization>
+        <name>cparedesr</name>
+    </organization>
     <properties>
         <!-- Alfresco Maven Plugin version to use -->
         <alfresco.sdk.version>4.12.0</alfresco.sdk.version>
@@ -59,12 +63,6 @@
             <version>4.2.0</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <scope>test</scope>
-        </dependency>
-
         <!-- The main Alfresco Repo dependency for compiling Java code in src/main/java -->
         <dependency>
             <groupId>${alfresco.groupId}</groupId>
@@ -78,28 +76,6 @@
             <artifactId>alfresco-rad</artifactId>
             <version>${alfresco.sdk.version}</version>
             <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.5.14</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpcore</artifactId>
-            <version>4.4.16</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Para SSLContexts (org.apache.httpcomponents:httpclient trae ssl, pero a veces falta) -->
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.5.14</version>
-            <scope>provided</scope>
         </dependency>
 
     </dependencies>
