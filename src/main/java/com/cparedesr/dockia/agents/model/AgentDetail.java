@@ -1,5 +1,11 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.model;
 
+/**
+ * Vista completa de un agente almacenado en el registro de Alfresco.
+ */
 public class AgentDetail {
 
     private String agentId;

@@ -1,5 +1,11 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.model;
 
+/**
+ * Informacion minima necesaria para operar sobre el runtime del agente.
+ */
 public class AgentRuntimeInfo {
     private String agentId;
     private String nodeId;

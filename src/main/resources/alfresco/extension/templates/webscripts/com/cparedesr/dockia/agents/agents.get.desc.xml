@@ -1,6 +1,6 @@
 <webscript>
   <shortname>dockia-ai-agents-list</shortname>
-  <description>List AI Agents</description>
+  <description>Lista agentes de IA</description>
   <url>/api/-default-/public/ai-agents/versions/1/agents</url>
   <format default="json">argument</format>
   <authentication>user</authentication>

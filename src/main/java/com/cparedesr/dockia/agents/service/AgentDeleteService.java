@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.service;
 
 import com.cparedesr.dockia.agents.model.AgentRuntimeInfo;
@@ -6,6 +9,10 @@ import com.cparedesr.dockia.agents.service.registry.AgentRegistryService;
 
 import java.util.Properties;
 
+/**
+ * Elimina un agente de forma coordinada: primero intenta retirar el contenedor
+ * Docker y despues borra el nodo de registro en Alfresco.
+ */
 public class AgentDeleteService {
 
     private AgentRegistryService registryService;
@@ -22,7 +29,8 @@ public class AgentDeleteService {
         boolean dockerEnabled = Boolean.parseBoolean(globalProperties.getProperty("alfresco.aiagents.docker.enabled", "true"));
 
         if (dockerEnabled && info.getContainerId() != null && !info.getContainerId().trim().isEmpty()) {
-            // idempotente: si no existe el contenedor no debe fallar
+            // Operacion idempotente: si el contenedor ya no existe, el borrado
+            // del registro de Alfresco debe continuar.
             dockerService.remove(info.getContainerId(), true);
         }
 

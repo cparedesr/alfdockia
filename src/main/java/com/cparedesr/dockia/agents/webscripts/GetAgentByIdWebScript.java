@@ -1,19 +1,26 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.webscripts;
 
 import com.cparedesr.dockia.agents.model.AgentDetail;
 import com.cparedesr.dockia.agents.service.exception.BadRequestException;
 import com.cparedesr.dockia.agents.service.registry.AgentRegistryService;
+import com.cparedesr.dockia.agents.service.subsystem.AgentSubsystemServiceLocator;
 import org.springframework.extensions.webscripts.*;
 
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Web Script GET para consultar el detalle de un agente por su agentId.
+ */
 public class GetAgentByIdWebScript extends DeclarativeWebScript {
 
-    private AgentRegistryService registryService;
+    private AgentSubsystemServiceLocator subsystemServiceLocator;
 
-    public void setRegistryService(AgentRegistryService registryService) {
-        this.registryService = registryService;
+    public void setSubsystemServiceLocator(AgentSubsystemServiceLocator subsystemServiceLocator) {
+        this.subsystemServiceLocator = subsystemServiceLocator;
     }
 
     @Override
@@ -23,6 +30,7 @@ public class GetAgentByIdWebScript extends DeclarativeWebScript {
 
         try {
             String id = getPathVar(req, "id");
+            AgentRegistryService registryService = subsystemServiceLocator.getRegistryService();
             AgentDetail detail = registryService.getAgentDetailByAgentId(id);
 
             model.put("data", detail);

@@ -1,6 +1,6 @@
 <webscript>
   <shortname>dockia-ai-agents-deploy</shortname>
-  <description>Deploy AI Agent</description>
+  <description>Despliega un agente de IA</description>
   <url>/api/-default-/public/ai-agents/versions/1/agents</url>
   <format default="json">argument</format>
   <authentication>user</authentication>

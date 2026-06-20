@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.service;
 
 import com.cparedesr.dockia.agents.model.AgentDeployRequest;

@@ -1,8 +1,14 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.model;
 
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Peticion de alta de un agente recibida por el endpoint REST.
+ */
 public class AgentDeployRequest {
 
     private String name;
@@ -46,7 +52,7 @@ public class AgentDeployRequest {
 
     public static class AlfrescoConfig {
         private String baseUrl;
-        private String authType = "basic"; // basic|bearer|none
+        private String authType = "basic"; // basic, bearer o none
         private String username;
         private SecretRef passwordSecretRef;
 

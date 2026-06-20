@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.service.secrets.impl;
 
 import com.cparedesr.dockia.agents.service.exception.BadRequestException;
@@ -5,6 +8,9 @@ import com.cparedesr.dockia.agents.service.secrets.SecretsService;
 
 import java.util.Properties;
 
+/**
+ * Implementacion inicial de secretos basada en propiedades globales de Alfresco.
+ */
 public class PropertySecretsService implements SecretsService {
 
     private Properties globalProperties;

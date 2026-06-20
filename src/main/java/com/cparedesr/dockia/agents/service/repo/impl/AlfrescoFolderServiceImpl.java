@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.service.repo.impl;
 
 import com.cparedesr.dockia.agents.service.exception.BadRequestException;
@@ -16,6 +19,10 @@ import org.springframework.util.StringUtils;
 
 import java.util.List;
 
+/**
+ * Servicio de repositorio que acepta un NodeRef existente o crea la ruta
+ * indicada bajo Company Home.
+ */
 public class AlfrescoFolderServiceImpl implements AlfrescoFolderService {
 
     private NodeService nodeService;
@@ -49,7 +56,8 @@ public class AlfrescoFolderServiceImpl implements AlfrescoFolderService {
         String normalized = repoPath.trim();
         if (!normalized.startsWith("/")) normalized = "/" + normalized;
 
-        // ✅ VALIDAR ANTES de buscar Company Home (evita NPE y es mejor práctica)
+        // Validamos antes de buscar Company Home para devolver un error claro
+        // y evitar llamadas innecesarias al servicio de busqueda.
         String[] parts = normalized.split("/");
         // parts[0] = "" ; parts[1] = "Company Home"
         if (parts.length < 2 || !parts[1].equalsIgnoreCase("Company Home")) {
@@ -91,7 +99,8 @@ public class AlfrescoFolderServiceImpl implements AlfrescoFolderService {
 
             rs = searchService.query(sp);
 
-            // ✅ Guard extra: si query devuelve null, no petar con NPE
+            // Guardia extra: si la busqueda devuelve null, respondemos con un
+            // error de dominio en vez de una excepcion generica.
             if (rs == null || rs.length() == 0) {
                 throw new BadRequestException("COMPANY_HOME_NOT_FOUND", "Company Home not found");
             }

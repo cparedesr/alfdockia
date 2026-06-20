@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.service.repo.impl;
 
 import com.cparedesr.dockia.agents.service.exception.BadRequestException;
@@ -93,7 +96,8 @@ public class AlfrescoFolderServiceImplTest {
 
     @Test(expected = BadRequestException.class)
     public void pathMustStartWithCompanyHome() {
-        // Ahora el código valida ANTES de consultar Company Home, así que no hace falta mockear searchService aquí.
+        // El codigo valida antes de consultar Company Home, asi que no hace
+        // falta mockear searchService aqui.
         service.ensureAndResolveNodeId(null, "/Sites/site1/documentLibrary");
     }
 }

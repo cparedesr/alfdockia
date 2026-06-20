@@ -1,20 +1,27 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.webscripts;
 
 import com.cparedesr.dockia.agents.model.AgentSummary;
 import com.cparedesr.dockia.agents.service.exception.BadRequestException;
 import com.cparedesr.dockia.agents.service.registry.AgentRegistryService;
+import com.cparedesr.dockia.agents.service.subsystem.AgentSubsystemServiceLocator;
 import org.springframework.extensions.webscripts.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Web Script GET para listar agentes registrados en Alfresco.
+ */
 public class ListAgentsGetWebScript extends DeclarativeWebScript {
 
-    private AgentRegistryService registryService;
+    private AgentSubsystemServiceLocator subsystemServiceLocator;
 
-    public void setRegistryService(AgentRegistryService registryService) {
-        this.registryService = registryService;
+    public void setSubsystemServiceLocator(AgentSubsystemServiceLocator subsystemServiceLocator) {
+        this.subsystemServiceLocator = subsystemServiceLocator;
     }
 
     @Override
@@ -26,6 +33,7 @@ public class ListAgentsGetWebScript extends DeclarativeWebScript {
             int skip = intParam(req, "skipCount", 0);
             int max = intParam(req, "maxItems", 100);
 
+            AgentRegistryService registryService = subsystemServiceLocator.getRegistryService();
             List<AgentSummary> items = registryService.listAgents(skip, max);
 
             Map<String, Object> data = new HashMap<>();
@@ -62,6 +70,8 @@ public class ListAgentsGetWebScript extends DeclarativeWebScript {
         try {
             return Integer.parseInt(v.trim());
         } catch (NumberFormatException e) {
+            // Los parametros de paginacion invalidos vuelven al valor por defecto
+            // para mantener el endpoint tolerante con clientes simples.
             return def;
         }
     }

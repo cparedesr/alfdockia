@@ -1,5 +1,11 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.service.exception;
 
+/**
+ * Excepcion de dominio que conserva un codigo funcional para la respuesta JSON.
+ */
 public class BadRequestException extends RuntimeException {
     private final String code;
 

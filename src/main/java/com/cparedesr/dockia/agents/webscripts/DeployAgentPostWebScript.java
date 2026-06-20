@@ -1,12 +1,13 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.webscripts;
 
 import com.cparedesr.dockia.agents.model.AgentDeployRequest;
 import com.cparedesr.dockia.agents.model.AgentDeployResponse;
-import com.cparedesr.dockia.agents.service.AgentDeploymentService;
-import com.cparedesr.dockia.agents.service.AgentValidationService;
 import com.cparedesr.dockia.agents.service.exception.BadRequestException;
+import com.cparedesr.dockia.agents.service.subsystem.AgentSubsystemServiceLocator;
 import com.fasterxml.jackson.databind.ObjectMapper;
-// import org.alfresco.repo.web.scripts.DeclarativeWebScript;
 import org.springframework.extensions.webscripts.DeclarativeWebScript;
 import org.springframework.extensions.webscripts.Cache;
 import org.springframework.extensions.webscripts.Status;
@@ -15,19 +16,17 @@ import org.springframework.extensions.webscripts.WebScriptRequest;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Web Script POST que valida una peticion JSON y delega el despliegue del agente.
+ */
 public class DeployAgentPostWebScript extends DeclarativeWebScript {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    private AgentValidationService validationService;
-    private AgentDeploymentService deploymentService;
+    private AgentSubsystemServiceLocator subsystemServiceLocator;
 
-    public void setValidationService(AgentValidationService validationService) {
-        this.validationService = validationService;
-    }
-
-    public void setDeploymentService(AgentDeploymentService deploymentService) {
-        this.deploymentService = deploymentService;
+    public void setSubsystemServiceLocator(AgentSubsystemServiceLocator subsystemServiceLocator) {
+        this.subsystemServiceLocator = subsystemServiceLocator;
     }
 
     @Override
@@ -45,11 +44,12 @@ public class DeployAgentPostWebScript extends DeclarativeWebScript {
                 throw new BadRequestException("BODY_REQUIRED", "Request body is required");
             }
 
+            // Jackson convierte el JSON publico en DTOs internos antes de validar.
             AgentDeployRequest deployRequest = mapper.readValue(json, AgentDeployRequest.class);
 
-            validationService.validateDeployRequest(deployRequest);
+            subsystemServiceLocator.getValidationService().validateDeployRequest(deployRequest);
 
-            AgentDeployResponse response = deploymentService.deploy(deployRequest);
+            AgentDeployResponse response = subsystemServiceLocator.getDeploymentService().deploy(deployRequest);
 
             status.setCode(Status.STATUS_CREATED);
 

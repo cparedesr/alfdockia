@@ -1,5 +1,11 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.model;
 
+/**
+ * Respuesta devuelta despues de solicitar el despliegue de un agente.
+ */
 public class AgentDeployResponse {
 
     private String agentId;

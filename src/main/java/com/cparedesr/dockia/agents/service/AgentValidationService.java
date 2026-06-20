@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.service;
 
 import com.cparedesr.dockia.agents.model.AgentDeployRequest;
@@ -11,6 +14,10 @@ import java.util.Arrays;
 import java.util.Properties;
 import java.util.Set;
 
+/**
+ * Valida las peticiones de alta antes de desplegar contenedores o persistir
+ * informacion en Alfresco.
+ */
 public class AgentValidationService {
 
     private AgentRegistryService registryService;
@@ -39,7 +46,8 @@ public class AgentValidationService {
             throw new BadRequestException("NAME_ALREADY_EXISTS", "Agent name already exists: " + r.getName());
         }
 
-        // ✅ Allowlist opcional (por defecto NO se aplica)
+        // Allowlist opcional de imagenes Docker. Por defecto no se aplica para
+        // facilitar entornos de prueba, pero puede activarse en produccion.
         boolean allowlistEnabled = Boolean.parseBoolean(
                 prop("alfresco.aiagents.image.allowlist.enabled", "false")
         );
@@ -57,8 +65,6 @@ public class AgentValidationService {
                 throw new BadRequestException("IMAGE_NOT_ALLOWED", "Image not in allowlist");
             }
         }
-        // ✅ si allowlistEnabled=false => se permite cualquier imagen
-
         if (!StringUtils.hasText(r.getAlfresco().getBaseUrl()))
             throw new BadRequestException("ALFRESCO_BASE_URL_REQUIRED", "alfresco.baseUrl is required");
 
@@ -77,6 +83,8 @@ public class AgentValidationService {
             }
         }
 
+        // El agente siempre necesita un destino: un NodeRef existente o una
+        // ruta que el servicio de repositorio pueda crear bajo Company Home.
         boolean hasTarget = StringUtils.hasText(r.getAlfresco().getTargetNodeId()) || StringUtils.hasText(r.getAlfresco().getTargetPath());
         if (!hasTarget) {
             throw new BadRequestException("TARGET_REQUIRED", "alfresco.targetNodeId or alfresco.targetPath is required");

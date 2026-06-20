@@ -1,0 +1,69 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!--
+
+  Contexto hijo del subsistema DockIA Agents. Encapsula los servicios que
+  gestionan agentes y su runtime Docker.
+-->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
+          http://www.springframework.org/schema/beans
+          http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+  <bean id="dockia.agents.validationService"
+        class="com.cparedesr.dockia.agents.service.AgentValidationService">
+    <property name="registryService" ref="dockia.agents.registryService"/>
+    <property name="nodeService" ref="NodeService"/>
+    <property name="globalProperties" ref="global-properties"/>
+  </bean>
+
+  <bean id="dockia.agents.deploymentService"
+        class="com.cparedesr.dockia.agents.service.AgentDeploymentService">
+    <property name="folderService" ref="dockia.agents.folderService"/>
+    <property name="secretsService" ref="dockia.agents.secretsService"/>
+    <property name="dockerService" ref="dockia.agents.dockerService"/>
+    <property name="registryService" ref="dockia.agents.registryService"/>
+    <property name="globalProperties" ref="global-properties"/>
+  </bean>
+
+  <bean id="dockia.agents.folderService"
+        class="com.cparedesr.dockia.agents.service.repo.impl.AlfrescoFolderServiceImpl">
+    <property name="nodeService" ref="NodeService"/>
+    <property name="searchService" ref="SearchService"/>
+    <property name="fileFolderService" ref="FileFolderService"/>
+  </bean>
+
+  <bean id="dockia.agents.registryService"
+        class="com.cparedesr.dockia.agents.service.registry.impl.AgentRegistryRepoService">
+    <property name="nodeService" ref="NodeService"/>
+    <property name="searchService" ref="SearchService"/>
+    <property name="fileFolderService" ref="FileFolderService"/>
+  </bean>
+
+  <bean id="dockia.agents.secretsService"
+        class="com.cparedesr.dockia.agents.service.secrets.impl.PropertySecretsService">
+    <property name="globalProperties" ref="global-properties"/>
+  </bean>
+
+  <bean id="dockia.agents.dockerService"
+        class="com.cparedesr.dockia.agents.service.docker.impl.DockerSocketCliServiceImpl">
+    <property name="globalProperties" ref="global-properties"/>
+  </bean>
+
+  <bean id="dockia.agents.deleteService"
+        class="com.cparedesr.dockia.agents.service.AgentDeleteService">
+    <property name="registryService" ref="dockia.agents.registryService"/>
+    <property name="dockerService" ref="dockia.agents.dockerService"/>
+    <property name="globalProperties" ref="global-properties"/>
+  </bean>
+
+  <bean id="dockia.agents.subsystemLifecycleService"
+        class="com.cparedesr.dockia.agents.service.subsystem.AgentSubsystemLifecycleService"
+        init-method="start"
+        destroy-method="stop">
+    <property name="registryService" ref="dockia.agents.registryService"/>
+    <property name="dockerService" ref="dockia.agents.dockerService"/>
+    <property name="globalProperties" ref="global-properties"/>
+  </bean>
+
+</beans>

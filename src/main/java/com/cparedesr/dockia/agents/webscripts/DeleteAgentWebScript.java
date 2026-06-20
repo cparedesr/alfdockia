@@ -1,18 +1,24 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.webscripts;
 
-import com.cparedesr.dockia.agents.service.AgentDeleteService;
 import com.cparedesr.dockia.agents.service.exception.BadRequestException;
+import com.cparedesr.dockia.agents.service.subsystem.AgentSubsystemServiceLocator;
 import org.springframework.extensions.webscripts.*;
 
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Web Script DELETE para eliminar un agente y su runtime asociado.
+ */
 public class DeleteAgentWebScript extends DeclarativeWebScript {
 
-    private AgentDeleteService deleteService;
+    private AgentSubsystemServiceLocator subsystemServiceLocator;
 
-    public void setDeleteService(AgentDeleteService deleteService) {
-        this.deleteService = deleteService;
+    public void setSubsystemServiceLocator(AgentSubsystemServiceLocator subsystemServiceLocator) {
+        this.subsystemServiceLocator = subsystemServiceLocator;
     }
 
     @Override
@@ -23,7 +29,7 @@ public class DeleteAgentWebScript extends DeclarativeWebScript {
         try {
             String id = req.getServiceMatch().getTemplateVars().get("id");
 
-            deleteService.deleteAgent(id);
+            subsystemServiceLocator.getDeleteService().deleteAgent(id);
 
             model.put("agentId", id);
             status.setCode(Status.STATUS_OK);

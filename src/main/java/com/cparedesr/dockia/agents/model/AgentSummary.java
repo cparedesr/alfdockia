@@ -1,5 +1,11 @@
+/*
+ * Copyright (c) 2026 cparedes. Todos los derechos reservados.
+ */
 package com.cparedesr.dockia.agents.model;
 
+/**
+ * Vista resumida usada al listar agentes desde la API.
+ */
 public class AgentSummary {
 
     private String agentId;
