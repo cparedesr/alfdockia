@@ -1,4 +1,8 @@
-# Alfresco DockIA Agents
+# ALFDOCKIA
+
+<p align="center">
+  <img src="images/alfdockia.png" alt="Arquitectura">
+</p>
 
 Este proyecto añade a Alfresco Content Services (ACS) un modulo para usar
 Alfresco como plano de control de agentes de IA desplegados como contenedores
