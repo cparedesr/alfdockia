@@ -1,134 +1,199 @@
-# Alfresco Community DockIA Agents
+# Alfresco DockIA Agents
 
-Este proyecto añade a Alfresco Content Services (ACS) un plugin que convierte Alfresco en el control plane para gestionar agentes de IA desplegados como contenedores Docker. El plugin expone una API REST para crear, listar, consultar y eliminar agentes, persistiendo su definición y estado en el propio repositorio de Alfresco (Agent Registry) para trazabilidad.
-
-
-Al desplegar un agente, Alfresco valida la configuración, resuelve el nodo destino (NodeRef) y los secretRef definidos en alfresco-global.properties (por ejemplo la contraseña del usuario técnico svc_ai), e inyecta todo como variables de entorno en el contenedor (config Alfresco + proveedor LLM + prompt + env extra). El runtime Docker puede operar en dos modos configurables: socket local (CLI contra /var/run/docker.sock) o Docker Remote API con TLS. Cada agente queda registrado en Alfresco con su agentId, containerId, estados deseado/actual y la configuración sanitizada (sin secretos en claro).
+Este proyecto añade a Alfresco Content Services (ACS) un modulo para usar
+Alfresco como plano de control de agentes de IA desplegados como contenedores
+Docker. Expone una API REST para crear, listar, consultar y eliminar agentes, y
+guarda su definicion y estado dentro del repositorio de Alfresco para mantener
+trazabilidad.
 
 ## Arquitectura
+
 ![Arquitectura](images/arquitectura.png)
 
+## Organizacion del codigo
 
-## Configuración
-1. Antes de poder crear agentes através de alfresco, primero tenemos que ejecutar el siguiente comando si utilizamos la modalidad socket, para saber el id con el que se está ejecutando en nuestro host:
-```
+- `src/main/java/com/cparedesr/dockia/agents/webscripts`: endpoints REST de
+  Alfresco Web Scripts.
+- `src/main/java/com/cparedesr/dockia/agents/service`: casos de uso de
+  validacion, despliegue y borrado.
+- `src/main/java/com/cparedesr/dockia/agents/service/docker`: contrato e
+  implementacion de integracion con Docker.
+- `src/main/java/com/cparedesr/dockia/agents/service/registry`: persistencia
+  del registro de agentes dentro del repositorio de Alfresco.
+- `src/main/java/com/cparedesr/dockia/agents/service/repo`: resolucion y
+  creacion de carpetas/nodos destino en Alfresco.
+- `src/main/java/com/cparedesr/dockia/agents/service/secrets`: resolucion de
+  secretos desde propiedades de Alfresco.
+- `src/main/java/com/cparedesr/dockia/agents/service/subsystem`: integracion
+  con el ciclo de vida de subsistemas de Alfresco.
+- `src/main/java/com/cparedesr/dockia/agents/model`: DTOs usados por la API.
+- `src/main/resources/alfresco/module/alfresco-dockia-agents`: configuracion,
+  modelo de contenido y Spring context padre del modulo.
+- `src/main/resources/alfresco/subsystems/DockIAAgents/default`: contexto hijo
+  del subsistema donde se encapsulan los servicios de agentes.
+
+## Funcionamiento
+
+Al desplegar un agente, Alfresco valida la configuracion, resuelve el nodo
+destino (`NodeRef`) o crea la ruta indicada, resuelve los `secretRef` definidos
+en `alfresco-global.properties` y prepara las variables de entorno para el
+contenedor. Los Web Scripts actuan como fachada publica y delegan en el
+subsistema `DockIAAgents`, que encapsula validacion, despliegue, registro,
+secretos, Docker y borrado.
+
+Cuando Alfresco inicia el subsistema, se leen los agentes registrados y se
+arrancan sus contenedores. Cuando el subsistema se detiene, se paran los
+contenedores registrados con el timeout configurado. El despliegue de nuevos
+contenedores se realiza por socket local; las operaciones de arranque, parada y
+borrado soportan socket local o Docker Remote API cuando se configura
+`mode=url`.
+
+El agente queda registrado en `Repositorio > Data Dictionary > AI Agents` con
+su `agentId`, `containerId`, estados deseado/actual y configuracion saneada. Los
+secretos nunca se persisten en claro: solo se guarda la referencia al secreto.
+
+## Configuracion
+
+Si se usa Docker por socket, primero consulta el GID del socket en el host:
+
+```bash
 stat -c '%g' /var/run/docker.sock
 ```
 
-2. Si se utiliza la modalidad socket debemos de configurar nuestro docker-compose.yaml y nuestro Dockerfile. A continuación, se detalla dentro del proyecto los ejemplos:
-```
-docker/docker-compose.yml -> montamos como volúmen el socket de docker.
+Despues revisa estos archivos:
 
-src/main/docker/Dockerfile -> Instalamos los comandos de docker y añadimos al usuario alfresco al id obtenido en el paso 1.
+```text
+docker/docker-compose.yml
+src/main/docker/Dockerfile
 ```
 
-3. Configuramos las siguientes propiedades en alfresco-global.properties:
-```
-# Activa/desactiva integración Docker
+El `docker-compose.yml` monta `/var/run/docker.sock` en el contenedor de ACS. El
+`Dockerfile` instala el CLI de Docker y añade el usuario `alfresco` al grupo que
+puede usar el socket.
+
+Propiedades principales en `alfresco-global.properties`:
+
+```properties
 alfresco.aiagents.docker.enabled=true
-# Modo de integración docker: socket o remote (url)
+
+alfresco.aiagents.subsystem.autoStart=true
+alfresco.aiagents.subsystem.startAgentsOnStart=true
+alfresco.aiagents.subsystem.stopAgentsOnStop=true
+alfresco.aiagents.subsystem.stopTimeoutSeconds=10
+
 alfresco.aiagents.docker.mode=socket
-# Socket path (cuando mode=socket)
 alfresco.aiagents.docker.socket=/var/run/docker.sock
 
-# Legacy (se mantienen pero se ignoran si mode=socket)
+# Opcional si se usa Docker Remote API para operaciones soportadas.
 # alfresco.aiagents.docker.baseUrl=https://dockerhost:2376
-# alfresco.aiagents.docker.network=ai-agents
 # alfresco.aiagents.docker.tls.keystore.path=/opt/alfresco/tls/docker-client.p12
 # alfresco.aiagents.docker.tls.keystore.password=changeit
 # alfresco.aiagents.docker.tls.truststore.path=/opt/alfresco/tls/docker-trust.p12
 # alfresco.aiagents.docker.tls.truststore.password=changeit
 
-# Secret placeholder (si usas auth basic desde el agente)
 alfresco.aiagents.secret.svc_ai_password=supersecret
 
 alfresco.aiagents.image.allowlist.enabled=false
-# alfresco.aiagents.image.allowlist.enabled=true
 # alfresco.aiagents.image.allowlist=cparedes/agents/,ghcr.io/miorg/,registry.local/
 ```
 
-## Comandos de ejmplo para crear nuestro agente
-1. Crear un agente, aparte de crear un contenedor con nuestro agente, también creará un nodo en alfresco en Repositorio> Data Dictionary> AI Agents:
-```
-   curl -u admin:admin   -X POST "http://localhost:8080/alfresco/s/api/-default-/public/ai-agents/versions/1/agents"   -H "Content-Type: application/json"   -d '{
-       "name": "extract-metadata1",
-       "image": "cparedes/agents/extract-metadata:1.0.0",
-      "ports": [
-        { "containerPort": 8080, "hostPort": 9090, "protocol": "tcp" }
-      ],
-      "alfresco": {
-        "baseUrl": "http://localhost:8080/alfresco",
-        "authType": "basic",
-        "username": "svc_ai",
-        "passwordSecretRef": {
-           "secretRef": "prop:alfresco.aiagents.secret.svc_ai_password"
-        },
-         "targetNodeId": "workspace://SpacesStore/e8780cd0-fc42-4e44-b80c-d0fc42ee44b7",
-        "pollingSeconds": 10
-      },
-      "llm": {
-         "provider": "ollama",
-         "baseUrl": "http://ollama:11434",
-         "model": "llama3.1",
-         "prompt": "Eres un agente que procesa documentos y deposita los resultados en el nodo destino."
-       },
-      "env": {
-        "LOG_LEVEL": "info"
-      }
-    }'
-```
-**IMPORTANTE** La password se creará con la configuración que le hayamos puesto en alfresco-global.properties.
+## Crear un agente
 
-2. Comprobar que el contenedor se ha creado con la password correcta:
+Crear un agente despliega el contenedor y crea un nodo de registro en Alfresco:
+
+```bash
+curl -u admin:admin \
+  -X POST "http://localhost:8080/alfresco/s/api/-default-/public/ai-agents/versions/1/agents" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "extract-metadata1",
+    "image": "cparedes/agents/extract-metadata:1.0.0",
+    "ports": [
+      { "containerPort": 8080, "hostPort": 9090, "protocol": "tcp" }
+    ],
+    "alfresco": {
+      "baseUrl": "http://localhost:8080/alfresco",
+      "authType": "basic",
+      "username": "svc_ai",
+      "passwordSecretRef": {
+        "secretRef": "prop:alfresco.aiagents.secret.svc_ai_password"
+      },
+      "targetNodeId": "workspace://SpacesStore/e8780cd0-fc42-4e44-b80c-d0fc42ee44b7",
+      "pollingSeconds": 10
+    },
+    "llm": {
+      "provider": "ollama",
+      "baseUrl": "http://ollama:11434",
+      "model": "llama3.1",
+      "prompt": "Eres un agente que procesa documentos y deposita los resultados en el nodo destino."
+    },
+    "env": {
+      "LOG_LEVEL": "info"
+    }
+  }'
 ```
-docker inspect 5576a9b3aeb5fc30ca9a3a1cfa09e6fd0a4abb5dcbcd33cf240e014ed866f17f \
+
+La contraseña se resuelve con la propiedad configurada en
+`alfresco-global.properties`.
+
+## Operaciones utiles
+
+Comprobar que el contenedor recibio la contraseña:
+
+```bash
+docker inspect <container_id> \
   --format '{{range .Config.Env}}{{println .}}{{end}}' | grep ALFRESCO_PASSWORD
 ```
 
-3. Listar los agentes que tenemos desplegados:
-```
+Listar agentes:
+
+```bash
 curl -u admin:admin \
   -H "Accept: application/json" \
   "http://localhost:8080/alfresco/s/api/-default-/public/ai-agents/versions/1/agents"
 ```
 
-4. Obtener propiedades del agente:
-```
+Consultar un agente:
+
+```bash
 curl -u admin:admin \
   -H "Accept: application/json" \
   "http://localhost:8080/alfresco/s/api/-default-/public/ai-agents/versions/1/agents/agent-6c00f331-342f-4658-9d00-02f3a7d0366a"
 ```
 
-5. Eliminar un agente:
-```
+Eliminar un agente:
+
+```bash
 curl -u admin:admin -X DELETE \
   "http://localhost:8080/alfresco/s/api/-default-/public/ai-agents/versions/1/agents/agent-6c00f331-342f-4658-9d00-02f3a7d0366a"
 ```
 
-### Agent Runtime (Docker) — Variables de entorno
+## Variables de entorno del agente
 
-Al desplegar un agente, Alfresco inyecta la configuración en el contenedor mediante variables de entorno.  
-Los secretos (por ejemplo `ALFRESCO_PASSWORD` o `LLM_API_KEY`) **nunca se almacenan en claro**: se resuelven desde `secretRef` (por ejemplo propiedades de `alfresco-global.properties`) y solo se inyectan en runtime.
+Al desplegar un agente, Alfresco inyecta configuracion mediante variables de
+entorno.
 
 **Alfresco**
+
 - `ALFRESCO_BASE_URL`
-- `ALFRESCO_AUTH_TYPE` (`basic|bearer|none`)
+- `ALFRESCO_AUTH_TYPE` (`basic`, `bearer` o `none`)
 - `ALFRESCO_USERNAME`
-- `ALFRESCO_PASSWORD` (resuelto desde `secretRef`)
-- `ALFRESCO_TARGET_NODE_ID` (NodeRef/UUID)
+- `ALFRESCO_PASSWORD` resuelto desde `secretRef`
+- `ALFRESCO_TARGET_NODE_ID`
 - `POLLING_SECONDS`
 
 **LLM**
+
 - `LLM_PROVIDER`
 - `LLM_BASE_URL`
 - `LLM_MODEL`
-- `LLM_API_KEY` (si aplica, resuelto desde `secretRef`)
+- `LLM_API_KEY` resuelto desde `secretRef`, si aplica
 - `AGENT_PROMPT`
 
 **Extras**
-- Variables adicionales definidas en el bloque `env` del JSON del agente (ej. `LOG_LEVEL=info`).
 
-Si queremos ver todas las propiedades que le inyectamos desde alfresco a nuestro container podemos consultar la clase:
-```
-src/main/java/com/cparedesr/dockia/agents/service/AgentDeploymentService.java
-```
+Las variables definidas en el bloque `env` del JSON del agente, por ejemplo
+`LOG_LEVEL=info`.
+
+La preparacion de estas variables vive en
+`src/main/java/com/cparedesr/dockia/agents/service/AgentDeploymentService.java`.
