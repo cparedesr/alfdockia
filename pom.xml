@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.cparedesr.dockia.agents</groupId>
     <artifactId>alfresco-dockia-agents</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>Alfresco DockIA Agents</name>
     <description>Modulo de Alfresco para desplegar y gestionar agentes de IA con Docker.</description>
     <packaging>jar</packaging>
