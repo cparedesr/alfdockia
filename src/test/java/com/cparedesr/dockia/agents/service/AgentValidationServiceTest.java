@@ -6,8 +6,6 @@ package com.cparedesr.dockia.agents.service;
 import com.cparedesr.dockia.agents.model.AgentDeployRequest;
 import com.cparedesr.dockia.agents.service.exception.BadRequestException;
 import com.cparedesr.dockia.agents.service.registry.AgentRegistryService;
-import org.alfresco.service.cmr.repository.NodeRef;
-import org.alfresco.service.cmr.repository.NodeService;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -17,16 +15,13 @@ public class AgentValidationServiceTest {
 
     private AgentValidationService validationService;
     private AgentRegistryService registryService;
-    private NodeService nodeService;
 
     @Before
     public void setUp() {
         validationService = new AgentValidationService();
         registryService = mock(AgentRegistryService.class);
-        nodeService = mock(NodeService.class);
 
         validationService.setRegistryService(registryService);
-        validationService.setNodeService(nodeService);
     }
 
     @Test
@@ -34,7 +29,6 @@ public class AgentValidationServiceTest {
         AgentDeployRequest req = validRequest();
 
         when(registryService.existsByName("agent1")).thenReturn(false);
-        when(nodeService.exists(new NodeRef(req.getAlfresco().getTargetNodeId()))).thenReturn(true);
 
         validationService.validateDeployRequest(req);
     }
@@ -48,10 +42,9 @@ public class AgentValidationServiceTest {
     }
 
     @Test(expected = BadRequestException.class)
-    public void missingTargetFails() {
+    public void missingDocumentTypeFails() {
         AgentDeployRequest req = validRequest();
-        req.getAlfresco().setTargetNodeId(null);
-        req.getAlfresco().setTargetPath(null);
+        req.getAlfresco().setDocumentType(null);
 
         when(registryService.existsByName("agent1")).thenReturn(false);
 
@@ -59,11 +52,11 @@ public class AgentValidationServiceTest {
     }
 
     @Test(expected = BadRequestException.class)
-    public void targetNodeNotFoundFails() {
+    public void invalidDocumentTypeFails() {
         AgentDeployRequest req = validRequest();
+        req.getAlfresco().setDocumentType("content");
 
         when(registryService.existsByName("agent1")).thenReturn(false);
-        when(nodeService.exists(new NodeRef(req.getAlfresco().getTargetNodeId()))).thenReturn(false);
 
         validationService.validateDeployRequest(req);
     }
@@ -74,7 +67,6 @@ public class AgentValidationServiceTest {
         req.getAlfresco().setUsername(null);
 
         when(registryService.existsByName("agent1")).thenReturn(false);
-        when(nodeService.exists(new NodeRef(req.getAlfresco().getTargetNodeId()))).thenReturn(true);
 
         validationService.validateDeployRequest(req);
     }
@@ -88,7 +80,6 @@ public class AgentValidationServiceTest {
         req.setPorts(java.util.List.of(p));
 
         when(registryService.existsByName("agent1")).thenReturn(false);
-        when(nodeService.exists(new NodeRef(req.getAlfresco().getTargetNodeId()))).thenReturn(true);
 
         validationService.validateDeployRequest(req);
     }
@@ -105,8 +96,8 @@ public class AgentValidationServiceTest {
         AgentDeployRequest.SecretRef sr = new AgentDeployRequest.SecretRef();
         sr.setSecretRef("prop:alfresco.aiagents.secret.svc_ai_password");
         a.setPasswordSecretRef(sr);
-        a.setTargetNodeId("workspace://SpacesStore/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
-        a.setPollingSeconds(10);
+        a.setDocumentType("cm:content");
+        a.setEventsBrokerUrl("tcp://alfresco-dockia-agents-activemq:61616");
         req.setAlfresco(a);
 
         AgentDeployRequest.LlmConfig llm = new AgentDeployRequest.LlmConfig();

@@ -13,24 +13,15 @@
   <bean id="dockia.agents.validationService"
         class="com.cparedesr.dockia.agents.service.AgentValidationService">
     <property name="registryService" ref="dockia.agents.registryService"/>
-    <property name="nodeService" ref="NodeService"/>
     <property name="globalProperties" ref="global-properties"/>
   </bean>
 
   <bean id="dockia.agents.deploymentService"
         class="com.cparedesr.dockia.agents.service.AgentDeploymentService">
-    <property name="folderService" ref="dockia.agents.folderService"/>
     <property name="secretsService" ref="dockia.agents.secretsService"/>
     <property name="dockerService" ref="dockia.agents.dockerService"/>
     <property name="registryService" ref="dockia.agents.registryService"/>
     <property name="globalProperties" ref="global-properties"/>
-  </bean>
-
-  <bean id="dockia.agents.folderService"
-        class="com.cparedesr.dockia.agents.service.repo.impl.AlfrescoFolderServiceImpl">
-    <property name="nodeService" ref="NodeService"/>
-    <property name="searchService" ref="SearchService"/>
-    <property name="fileFolderService" ref="FileFolderService"/>
   </bean>
 
   <bean id="dockia.agents.registryService"

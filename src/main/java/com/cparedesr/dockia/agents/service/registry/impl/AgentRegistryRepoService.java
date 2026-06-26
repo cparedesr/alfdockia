@@ -37,7 +37,7 @@ public class AgentRegistryRepoService implements AgentRegistryService {
     private static final QName PROP_AGENT_ID = QName.createQName(AI_URI, "agentId");
     private static final QName PROP_NAME = QName.createQName(AI_URI, "name");
     private static final QName PROP_IMAGE = QName.createQName(AI_URI, "image");
-    private static final QName PROP_TARGET = QName.createQName(AI_URI, "targetNodeId");
+    private static final QName PROP_DOCUMENT_TYPE = QName.createQName(AI_URI, "documentType");
     private static final QName PROP_DESIRED = QName.createQName(AI_URI, "desiredState");
     private static final QName PROP_CURRENT = QName.createQName(AI_URI, "currentState");
     private static final QName PROP_HEALTH = QName.createQName(AI_URI, "health");
@@ -76,8 +76,7 @@ public class AgentRegistryRepoService implements AgentRegistryService {
                                AgentDeployRequest sanitizedRequest,
                                String containerId,
                                String desired,
-                               String current,
-                               String targetNodeId) {
+                               String current) {
 
         try {
             NodeRef folder = ensureRegistryFolder();
@@ -86,7 +85,7 @@ public class AgentRegistryRepoService implements AgentRegistryService {
             props.put(PROP_AGENT_ID, agentId);
             props.put(PROP_NAME, sanitizedRequest.getName());
             props.put(PROP_IMAGE, sanitizedRequest.getImage());
-            props.put(PROP_TARGET, targetNodeId);
+            props.put(PROP_DOCUMENT_TYPE, sanitizedRequest.getAlfresco().getDocumentType());
             props.put(PROP_DESIRED, desired);
             props.put(PROP_CURRENT, current);
             props.put(PROP_CONTAINER, containerId);
@@ -178,7 +177,6 @@ public class AgentRegistryRepoService implements AgentRegistryService {
 
         AgentRuntimeInfo info = new AgentRuntimeInfo();
         info.setAgentId(toStr(nodeService.getProperty(nr, PROP_AGENT_ID)));
-        info.setNodeId(nr.getId());
         info.setContainerId(toStr(nodeService.getProperty(nr, PROP_CONTAINER)));
         return info;
     }
@@ -193,16 +191,15 @@ public class AgentRegistryRepoService implements AgentRegistryService {
 
     private AgentSummary mapSummary(NodeRef nodeRef) {
         AgentSummary s = new AgentSummary();
-        s.setNodeId(nodeRef.getId());
 
         s.setAgentId(toStr(nodeService.getProperty(nodeRef, PROP_AGENT_ID)));
         s.setName(toStr(nodeService.getProperty(nodeRef, PROP_NAME)));
         s.setImage(toStr(nodeService.getProperty(nodeRef, PROP_IMAGE)));
+        s.setDocumentType(toStr(nodeService.getProperty(nodeRef, PROP_DOCUMENT_TYPE)));
         s.setDesiredState(toStr(nodeService.getProperty(nodeRef, PROP_DESIRED)));
         s.setCurrentState(toStr(nodeService.getProperty(nodeRef, PROP_CURRENT)));
         s.setHealth(toStr(nodeService.getProperty(nodeRef, PROP_HEALTH)));
         s.setContainerId(toStr(nodeService.getProperty(nodeRef, PROP_CONTAINER)));
-        s.setTargetNodeId(toStr(nodeService.getProperty(nodeRef, PROP_TARGET)));
 
         s.setCreatedAt(toIso(nodeService.getProperty(nodeRef, PROP_CREATED)));
         s.setUpdatedAt(toIso(nodeService.getProperty(nodeRef, PROP_UPDATED)));
@@ -212,16 +209,15 @@ public class AgentRegistryRepoService implements AgentRegistryService {
 
     private AgentDetail mapDetail(NodeRef nodeRef) {
         AgentDetail d = new AgentDetail();
-        d.setNodeId(nodeRef.getId());
 
         d.setAgentId(toStr(nodeService.getProperty(nodeRef, PROP_AGENT_ID)));
         d.setName(toStr(nodeService.getProperty(nodeRef, PROP_NAME)));
         d.setImage(toStr(nodeService.getProperty(nodeRef, PROP_IMAGE)));
+        d.setDocumentType(toStr(nodeService.getProperty(nodeRef, PROP_DOCUMENT_TYPE)));
         d.setDesiredState(toStr(nodeService.getProperty(nodeRef, PROP_DESIRED)));
         d.setCurrentState(toStr(nodeService.getProperty(nodeRef, PROP_CURRENT)));
         d.setHealth(toStr(nodeService.getProperty(nodeRef, PROP_HEALTH)));
         d.setContainerId(toStr(nodeService.getProperty(nodeRef, PROP_CONTAINER)));
-        d.setTargetNodeId(toStr(nodeService.getProperty(nodeRef, PROP_TARGET)));
 
         d.setCreatedAt(toIso(nodeService.getProperty(nodeRef, PROP_CREATED)));
         d.setUpdatedAt(toIso(nodeService.getProperty(nodeRef, PROP_UPDATED)));
@@ -235,7 +231,6 @@ public class AgentRegistryRepoService implements AgentRegistryService {
     private AgentRuntimeInfo mapRuntimeInfo(NodeRef nodeRef) {
         AgentRuntimeInfo info = new AgentRuntimeInfo();
         info.setAgentId(toStr(nodeService.getProperty(nodeRef, PROP_AGENT_ID)));
-        info.setNodeId(nodeRef.getId());
         info.setContainerId(toStr(nodeService.getProperty(nodeRef, PROP_CONTAINER)));
         return info;
     }

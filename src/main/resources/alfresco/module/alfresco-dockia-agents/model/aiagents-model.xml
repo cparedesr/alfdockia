@@ -3,7 +3,7 @@
 
   <description>Modelo de contenido para registrar agentes de IA gestionados desde Alfresco.</description>
   <author>cparedesr</author>
-  <version>1.1</version>
+  <version>1.2</version>
 
   <imports>
     <import uri="http://www.alfresco.org/model/dictionary/1.0" prefix="d"/>
@@ -12,6 +12,7 @@
 
   <namespaces>
     <namespace uri="http://www.cparedesr.com/model/aiagents/1.0" prefix="ai"/>
+    <namespace uri="http://www.cparedesr.com/model/extractmetadata/1.0" prefix="em"/>
   </namespaces>
 
   <types>
@@ -45,9 +46,9 @@
           <mandatory>true</mandatory>
         </property>
 
-        <property name="ai:targetNodeId">
+        <property name="ai:documentType">
           <type>d:text</type>
-          <mandatory>false</mandatory>
+          <mandatory>true</mandatory>
         </property>
 
         <property name="ai:desiredState">
@@ -87,5 +88,47 @@
       </properties>
     </type>
   </types>
+
+  <aspects>
+    <aspect name="em:personMetadata">
+      <title>Metadatos personales extraidos</title>
+      <properties>
+        <property name="em:nombre">
+          <title>Nombre</title>
+          <type>d:text</type>
+          <mandatory>false</mandatory>
+        </property>
+
+        <property name="em:apellido1">
+          <title>Apellido 1</title>
+          <type>d:text</type>
+          <mandatory>false</mandatory>
+        </property>
+
+        <property name="em:apellido2">
+          <title>Apellido 2</title>
+          <type>d:text</type>
+          <mandatory>false</mandatory>
+        </property>
+
+        <property name="em:dni">
+          <title>DNI</title>
+          <type>d:text</type>
+          <mandatory>false</mandatory>
+          <index enabled="true">
+            <atomic>true</atomic>
+            <stored>true</stored>
+            <tokenised>false</tokenised>
+          </index>
+        </property>
+
+        <property name="em:fechaNacimiento">
+          <title>Fecha de nacimiento</title>
+          <type>d:date</type>
+          <mandatory>false</mandatory>
+        </property>
+      </properties>
+    </aspect>
+  </aspects>
 
 </model>

@@ -6,10 +6,9 @@ package com.cparedesr.dockia.agents.service;
 import com.cparedesr.dockia.agents.model.AgentDeployRequest;
 import com.cparedesr.dockia.agents.service.exception.BadRequestException;
 import com.cparedesr.dockia.agents.service.registry.AgentRegistryService;
-import org.alfresco.service.cmr.repository.NodeRef;
-import org.alfresco.service.cmr.repository.NodeService;
 import org.springframework.util.StringUtils;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.Set;
@@ -21,11 +20,9 @@ import java.util.Set;
 public class AgentValidationService {
 
     private AgentRegistryService registryService;
-    private NodeService nodeService;
     private Properties globalProperties;
 
     public void setRegistryService(AgentRegistryService registryService) { this.registryService = registryService; }
-    public void setNodeService(NodeService nodeService) { this.nodeService = nodeService; }
     public void setGlobalProperties(Properties globalProperties) { this.globalProperties = globalProperties; }
 
     private static final Set<String> ALLOWED_LLM_PROVIDERS = Set.of(
@@ -67,6 +64,7 @@ public class AgentValidationService {
         }
         if (!StringUtils.hasText(r.getAlfresco().getBaseUrl()))
             throw new BadRequestException("ALFRESCO_BASE_URL_REQUIRED", "alfresco.baseUrl is required");
+        validateUri("ALFRESCO_BASE_URL_INVALID", "alfresco.baseUrl is invalid", r.getAlfresco().getBaseUrl());
 
         String authType = (r.getAlfresco().getAuthType() == null) ? "basic" : r.getAlfresco().getAuthType().toLowerCase();
         if (!ALLOWED_AUTH_TYPES.contains(authType)) {
@@ -83,19 +81,16 @@ public class AgentValidationService {
             }
         }
 
-        // El agente siempre necesita un destino: un NodeRef existente o una
-        // ruta que el servicio de repositorio pueda crear bajo Company Home.
-        boolean hasTarget = StringUtils.hasText(r.getAlfresco().getTargetNodeId()) || StringUtils.hasText(r.getAlfresco().getTargetPath());
-        if (!hasTarget) {
-            throw new BadRequestException("TARGET_REQUIRED", "alfresco.targetNodeId or alfresco.targetPath is required");
+        if (!StringUtils.hasText(r.getAlfresco().getDocumentType())) {
+            throw new BadRequestException("ALFRESCO_DOCUMENT_TYPE_REQUIRED", "alfresco.documentType is required");
         }
-
-        if (StringUtils.hasText(r.getAlfresco().getTargetNodeId())) {
-            NodeRef nr = new NodeRef(r.getAlfresco().getTargetNodeId());
-            if (!nodeService.exists(nr)) {
-                throw new BadRequestException("TARGET_NODE_NOT_FOUND", "Target node not found: " + r.getAlfresco().getTargetNodeId());
-            }
+        if (!r.getAlfresco().getDocumentType().matches("[A-Za-z][A-Za-z0-9_-]*:[A-Za-z][A-Za-z0-9_-]*")) {
+            throw new BadRequestException("ALFRESCO_DOCUMENT_TYPE_INVALID", "alfresco.documentType must be a prefixed QName, for example cm:content");
         }
+        if (!StringUtils.hasText(r.getAlfresco().getEventsBrokerUrl())) {
+            throw new BadRequestException("ALFRESCO_EVENTS_BROKER_URL_REQUIRED", "alfresco.eventsBrokerUrl is required");
+        }
+        validateUri("ALFRESCO_EVENTS_BROKER_URL_INVALID", "alfresco.eventsBrokerUrl is invalid", r.getAlfresco().getEventsBrokerUrl());
 
         if (!StringUtils.hasText(r.getLlm().getProvider()))
             throw new BadRequestException("LLM_PROVIDER_REQUIRED", "llm.provider is required");
@@ -128,5 +123,16 @@ public class AgentValidationService {
     private String prop(String key, String def) {
         if (globalProperties == null) return def;
         return globalProperties.getProperty(key, def);
+    }
+
+    private void validateUri(String code, String message, String value) {
+        try {
+            URI uri = URI.create(value);
+            if (!StringUtils.hasText(uri.getScheme())) {
+                throw new IllegalArgumentException("missing scheme");
+            }
+        } catch (RuntimeException e) {
+            throw new BadRequestException(code, message);
+        }
     }
 }

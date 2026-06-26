@@ -55,11 +55,8 @@ public class AgentDeployRequest {
         private String authType = "basic"; // basic, bearer o none
         private String username;
         private SecretRef passwordSecretRef;
-
-        private String targetNodeId;
-        private String targetPath;
-
-        private int pollingSeconds = 10;
+        private String documentType = "cm:content";
+        private String eventsBrokerUrl = "tcp://alfresco-dockia-agents-activemq:61616";
 
         public String getBaseUrl() { return baseUrl; }
         public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
@@ -69,12 +66,10 @@ public class AgentDeployRequest {
         public void setUsername(String username) { this.username = username; }
         public SecretRef getPasswordSecretRef() { return passwordSecretRef; }
         public void setPasswordSecretRef(SecretRef passwordSecretRef) { this.passwordSecretRef = passwordSecretRef; }
-        public String getTargetNodeId() { return targetNodeId; }
-        public void setTargetNodeId(String targetNodeId) { this.targetNodeId = targetNodeId; }
-        public String getTargetPath() { return targetPath; }
-        public void setTargetPath(String targetPath) { this.targetPath = targetPath; }
-        public int getPollingSeconds() { return pollingSeconds; }
-        public void setPollingSeconds(int pollingSeconds) { this.pollingSeconds = pollingSeconds; }
+        public String getDocumentType() { return documentType; }
+        public void setDocumentType(String documentType) { this.documentType = documentType; }
+        public String getEventsBrokerUrl() { return eventsBrokerUrl; }
+        public void setEventsBrokerUrl(String eventsBrokerUrl) { this.eventsBrokerUrl = eventsBrokerUrl; }
     }
 
     public static class LlmConfig {

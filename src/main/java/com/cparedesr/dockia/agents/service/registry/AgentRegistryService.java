@@ -21,8 +21,7 @@ public interface AgentRegistryService {
                          AgentDeployRequest sanitizedRequest,
                          String containerId,
                          String desired,
-                         String current,
-                         String targetNodeId);
+                         String current);
 
     List<AgentSummary> listAgents(int skipCount, int maxItems);
 

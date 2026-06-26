@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.alfresco</groupId>
+        <artifactId>alfresco-java-sdk</artifactId>
+        <version>7.0.0</version>
+    </parent>
+
+    <groupId>com.cparedesr.dockia.agents</groupId>
+    <artifactId>extract-metadata-agent</artifactId>
+    <version>1.0.0</version>
+    <name>DockIA Extract Metadata Agent</name>
+    <description>Agente out-of-process para extraer metadatos personales de documentos de Alfresco.</description>
+
+    <properties>
+        <java.version>17</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <alfresco.java.sdk.version>7.0.0</alfresco.java.sdk.version>
+        <tika.version>2.9.2</tika.version>
+        <license.skip>true</license.skip>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.alfresco</groupId>
+            <artifactId>alfresco-java-event-api-spring-boot-starter</artifactId>
+            <version>${alfresco.java.sdk.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>${tika.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-parsers-standard-package</artifactId>
+            <version>${tika.version}</version>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+        <repository>
+            <id>alfresco-public</id>
+            <url>https://artifacts.alfresco.com/nexus/content/groups/public</url>
+        </repository>
+    </repositories>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

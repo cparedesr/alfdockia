@@ -11,12 +11,11 @@ public class AgentDetail {
     private String agentId;
     private String name;
     private String image;
+    private String documentType;
     private String desiredState;
     private String currentState;
     private String health;
     private String containerId;
-    private String targetNodeId;
-    private String nodeId;
 
     private String createdAt;
     private String updatedAt;
@@ -31,6 +30,9 @@ public class AgentDetail {
     public String getImage() { return image; }
     public void setImage(String image) { this.image = image; }
 
+    public String getDocumentType() { return documentType; }
+    public void setDocumentType(String documentType) { this.documentType = documentType; }
+
     public String getDesiredState() { return desiredState; }
     public void setDesiredState(String desiredState) { this.desiredState = desiredState; }
 
@@ -42,12 +44,6 @@ public class AgentDetail {
 
     public String getContainerId() { return containerId; }
     public void setContainerId(String containerId) { this.containerId = containerId; }
-
-    public String getTargetNodeId() { return targetNodeId; }
-    public void setTargetNodeId(String targetNodeId) { this.targetNodeId = targetNodeId; }
-
-    public String getNodeId() { return nodeId; }
-    public void setNodeId(String nodeId) { this.nodeId = nodeId; }
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }

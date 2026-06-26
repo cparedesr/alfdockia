@@ -35,15 +35,17 @@ trazabilidad.
   modelo de contenido y Spring context padre del modulo.
 - `src/main/resources/alfresco/subsystems/DockIAAgents/default`: contexto hijo
   del subsistema donde se encapsulan los servicios de agentes.
+- `agents/extract metadata`: agente Spring Boot out-of-process que escucha
+  eventos de Alfresco, lee contenidos y escribe metadatos extraidos.
 
 ## Funcionamiento
 
-Al desplegar un agente, Alfresco valida la configuracion, resuelve el nodo
-destino (`NodeRef`) o crea la ruta indicada, resuelve los `secretRef` definidos
-en `alfresco-global.properties` y prepara las variables de entorno para el
-contenedor. Los Web Scripts actuan como fachada publica y delegan en el
-subsistema `DockIAAgents`, que encapsula validacion, despliegue, registro,
-secretos, Docker y borrado.
+Al desplegar un agente, Alfresco valida la configuracion, resuelve los
+`secretRef` definidos en `alfresco-global.properties` y prepara las variables
+de entorno para el contenedor: conexion a Alfresco, broker de eventos, tipo
+documental que debe procesar y configuracion LLM. Los Web Scripts actuan como
+fachada publica y delegan en el subsistema `DockIAAgents`, que encapsula
+validacion, despliegue, registro, secretos, Docker y borrado.
 
 Cuando Alfresco inicia el subsistema, se leen los agentes registrados y se
 arrancan sus contenedores. Cuando el subsistema se detiene, se paran los
@@ -87,6 +89,7 @@ alfresco.aiagents.subsystem.stopTimeoutSeconds=10
 
 alfresco.aiagents.docker.mode=socket
 alfresco.aiagents.docker.socket=/var/run/docker.sock
+alfresco.aiagents.docker.network=alfdockia
 
 # Opcional si se usa Docker Remote API para operaciones soportadas.
 # alfresco.aiagents.docker.baseUrl=https://dockerhost:2376
@@ -99,6 +102,12 @@ alfresco.aiagents.secret.svc_ai_password=supersecret
 
 alfresco.aiagents.image.allowlist.enabled=false
 # alfresco.aiagents.image.allowlist=cparedes/agents/,ghcr.io/miorg/,registry.local/
+```
+
+## Construir el agente extract metadata
+
+```bash
+docker build -t cparedes/agents/extract-metadata:1.0.0 "agents/extract metadata"
 ```
 
 ## Crear un agente
@@ -116,20 +125,20 @@ curl -u admin:admin \
       { "containerPort": 8080, "hostPort": 9090, "protocol": "tcp" }
     ],
     "alfresco": {
-      "baseUrl": "http://localhost:8080/alfresco",
+      "baseUrl": "http://alfresco-dockia-agents-acs:8080/alfresco",
       "authType": "basic",
       "username": "svc_ai",
       "passwordSecretRef": {
         "secretRef": "prop:alfresco.aiagents.secret.svc_ai_password"
       },
-      "targetNodeId": "workspace://SpacesStore/e8780cd0-fc42-4e44-b80c-d0fc42ee44b7",
-      "pollingSeconds": 10
+      "documentType": "cm:content",
+      "eventsBrokerUrl": "tcp://alfresco-dockia-agents-activemq:61616"
     },
     "llm": {
       "provider": "ollama",
       "baseUrl": "http://ollama:11434",
       "model": "llama3.1",
-      "prompt": "Eres un agente que procesa documentos y deposita los resultados en el nodo destino."
+      "prompt": "Eres un agente que extrae nombre, apellido1, apellido2, DNI y fechaNacimiento de documentos. Devuelve solo JSON valido."
     },
     "env": {
       "LOG_LEVEL": "info"
@@ -183,8 +192,8 @@ entorno.
 - `ALFRESCO_AUTH_TYPE` (`basic`, `bearer` o `none`)
 - `ALFRESCO_USERNAME`
 - `ALFRESCO_PASSWORD` resuelto desde `secretRef`
-- `ALFRESCO_TARGET_NODE_ID`
-- `POLLING_SECONDS`
+- `ALFRESCO_DOCUMENT_TYPE`
+- `ALFRESCO_EVENTS_BROKER_URL`
 
 **LLM**
 
