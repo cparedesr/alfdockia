@@ -74,7 +74,3 @@ volumes:
     external: true
   alfresco-dockia-agents-ass-volume:
     external: true
-
-# networks:
-#   default:
-#     name: alfdockia

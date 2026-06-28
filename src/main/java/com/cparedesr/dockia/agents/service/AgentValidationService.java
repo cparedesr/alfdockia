@@ -38,6 +38,9 @@ public class AgentValidationService {
         if (!StringUtils.hasText(r.getImage())) throw new BadRequestException("IMAGE_REQUIRED", "image is required");
         if (r.getAlfresco() == null) throw new BadRequestException("ALFRESCO_REQUIRED", "alfresco is required");
         if (r.getLlm() == null) throw new BadRequestException("LLM_REQUIRED", "llm is required");
+        if (r.getPorts() != null && !r.getPorts().isEmpty()) {
+            throw new BadRequestException("PORTS_NOT_ALLOWED", "ports are not allowed; agent containers must not expose host ports");
+        }
 
         if (registryService.existsByName(r.getName())) {
             throw new BadRequestException("NAME_ALREADY_EXISTS", "Agent name already exists: " + r.getName());
@@ -106,18 +109,6 @@ public class AgentValidationService {
             throw new BadRequestException("LLM_MODEL_REQUIRED", "llm.model is required");
         if (!StringUtils.hasText(r.getLlm().getPrompt()))
             throw new BadRequestException("AGENT_PROMPT_REQUIRED", "llm.prompt is required");
-
-        if (r.getPorts() != null) {
-            for (AgentDeployRequest.PortMapping p : r.getPorts()) {
-                if (p.getContainerPort() < 1 || p.getContainerPort() > 65535)
-                    throw new BadRequestException("PORT_INVALID", "containerPort invalid");
-                if (p.getHostPort() < 1 || p.getHostPort() > 65535)
-                    throw new BadRequestException("PORT_INVALID", "hostPort invalid");
-                String proto = p.getProtocol() == null ? "tcp" : p.getProtocol();
-                if (!proto.equals("tcp") && !proto.equals("udp"))
-                    throw new BadRequestException("PORT_PROTOCOL_INVALID", "protocol must be tcp|udp");
-            }
-        }
     }
 
     private String prop(String key, String def) {

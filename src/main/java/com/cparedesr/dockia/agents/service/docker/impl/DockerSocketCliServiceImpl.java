@@ -75,14 +75,6 @@ public class DockerSocketCliServiceImpl implements DockerService {
             cmdCreate.add(e.getKey() + "=" + e.getValue());
         }
 
-        if (ports != null) {
-            for (AgentDeployRequest.PortMapping p : ports) {
-                String proto = p.getProtocol() == null ? "tcp" : p.getProtocol();
-                cmdCreate.add("-p");
-                cmdCreate.add(p.getHostPort() + ":" + p.getContainerPort() + "/" + proto);
-            }
-        }
-
         cmdCreate.add(image);
 
         String containerId = execAndGetFirstLine(cmdCreate);

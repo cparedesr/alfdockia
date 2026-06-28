@@ -89,7 +89,6 @@ alfresco.aiagents.subsystem.stopTimeoutSeconds=10
 
 alfresco.aiagents.docker.mode=socket
 alfresco.aiagents.docker.socket=/var/run/docker.sock
-alfresco.aiagents.docker.network=alfdockia
 
 # Opcional si se usa Docker Remote API para operaciones soportadas.
 # alfresco.aiagents.docker.baseUrl=https://dockerhost:2376
@@ -121,9 +120,6 @@ curl -u admin:admin \
   -d '{
     "name": "extract-metadata1",
     "image": "cparedes/agents/extract-metadata:1.0.0",
-    "ports": [
-      { "containerPort": 8080, "hostPort": 9090, "protocol": "tcp" }
-    ],
     "alfresco": {
       "baseUrl": "http://alfresco-dockia-agents-acs:8080/alfresco",
       "authType": "basic",
@@ -136,8 +132,8 @@ curl -u admin:admin \
     },
     "llm": {
       "provider": "ollama",
-      "baseUrl": "http://ollama:11434",
-      "model": "llama3.1",
+      "baseUrl": "http://192.168.10.22:11434",
+      "model": "mistral-small3.1:latest",
       "prompt": "Eres un agente que extrae nombre, apellido1, apellido2, DNI y fechaNacimiento de documentos. Devuelve solo JSON valido."
     },
     "env": {
@@ -148,6 +144,9 @@ curl -u admin:admin \
 
 La contraseña se resuelve con la propiedad configurada en
 `alfresco-global.properties`.
+
+Los agentes no publican puertos en el host. La API rechaza el bloque `ports`
+para evitar exposicion externa de contenedores de agente.
 
 ## Operaciones utiles
 

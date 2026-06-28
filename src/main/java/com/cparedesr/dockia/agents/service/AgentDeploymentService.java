@@ -76,7 +76,7 @@ public class AgentDeploymentService {
                 "com.cparedesr.dockia.documentType", req.getAlfresco().getDocumentType()
         );
 
-        DockerService.CreateResult created = dockerService.createAndStart(agentId, req.getImage(), env, labels, req.getPorts());
+        DockerService.CreateResult created = dockerService.createAndStart(agentId, req.getImage(), env, labels, null);
 
         AgentDeployRequest sanitized = sanitize(req, alfrescoBaseUrl);
         registryService.createAgentNode(agentId, sanitized, created.getContainerId(), "running", created.getCurrentState());
@@ -94,7 +94,6 @@ public class AgentDeploymentService {
         AgentDeployRequest out = new AgentDeployRequest();
         out.setName(in.getName());
         out.setImage(in.getImage());
-        out.setPorts(in.getPorts());
         out.setEnv(in.getEnv());
 
         AgentDeployRequest.AlfrescoConfig a = new AgentDeployRequest.AlfrescoConfig();

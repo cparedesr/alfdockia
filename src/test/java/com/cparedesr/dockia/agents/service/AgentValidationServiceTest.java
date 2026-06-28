@@ -72,11 +72,11 @@ public class AgentValidationServiceTest {
     }
 
     @Test(expected = BadRequestException.class)
-    public void invalidPortFails() {
+    public void portsAreNotAllowed() {
         AgentDeployRequest req = validRequest();
         AgentDeployRequest.PortMapping p = new AgentDeployRequest.PortMapping();
-        p.setContainerPort(70000);
-        p.setHostPort(18080);
+        p.setContainerPort(8080);
+        p.setHostPort(9090);
         req.setPorts(java.util.List.of(p));
 
         when(registryService.existsByName("agent1")).thenReturn(false);
